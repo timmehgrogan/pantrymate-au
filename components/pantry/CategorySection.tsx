@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PantryItem, PantryCategory } from '@/types';
 import { getFoodEmoji } from '@/constants/foodEmojis';
@@ -97,10 +97,18 @@ export function CategorySection({ category, items, onRemove, onUpdateQuantity, t
             key={item.id}
             style={[styles.itemCard, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}
           >
-            {/* Food emoji icon */}
-            <View style={[styles.emojiCircle, { backgroundColor: theme.background }]}>
-              <Text style={styles.emojiText}>{emoji}</Text>
-            </View>
+            {/* Food photo or emoji */}
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={[styles.emojiCircle, styles.itemPhoto]}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.emojiCircle, { backgroundColor: theme.background }]}>
+                <Text style={styles.emojiText}>{emoji}</Text>
+              </View>
+            )}
 
             {/* Name + brand + qty */}
             <View style={styles.itemMiddle}>
@@ -174,6 +182,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   emojiText: { fontSize: 24 },
+  itemPhoto: { borderRadius: 22, overflow: 'hidden' },
   itemMiddle: { flex: 1, gap: 2 },
   itemName: { fontSize: 15, fontWeight: '600' },
   itemQty: { fontSize: 12 },

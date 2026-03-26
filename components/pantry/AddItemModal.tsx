@@ -8,9 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { AddPantryItemInput, PantryCategory } from '@/types';
+import { identifyFoodFromPhoto } from '@/lib/claudeApi';
 
 const CATEGORIES: { key: PantryCategory; label: string; icon: string; color: string }[] = [
   { key: 'fridge', label: 'Fridge', icon: '🌡️', color: '#3B82F6' },
@@ -34,6 +38,45 @@ export function AddItemModal({ visible, onClose, onAdd, theme }: Props) {
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState('pcs');
   const [expiryDate, setExpiryDate] = useState('');
+  const [isIdentifying, setIsIdentifying] = useState(false);
+
+  async function handleTakePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Camera Permission Needed',
+        'Allow camera access so Claude can identify your food item.'
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets[0]?.base64) return;
+
+    setIsIdentifying(true);
+    try {
+      const identified = await identifyFoodFromPhoto(result.assets[0].base64);
+      if (identified) {
+        setName(identified.name);
+        setCategory(identified.category);
+        setQuantity(String(identified.quantity));
+        setUnit(identified.unit);
+      } else {
+        Alert.alert('Could not identify', 'Please enter the item name manually.');
+      }
+    } catch {
+      Alert.alert('Identification failed', 'Check your Claude API key in .env and restart the server.');
+    } finally {
+      setIsIdentifying(false);
+    }
+  }
 
   function handleAdd() {
     if (!name.trim()) return;
@@ -70,6 +113,31 @@ export function AddItemModal({ visible, onClose, onAdd, theme }: Props) {
         </View>
 
         <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
+
+          {/* ── Take Photo to identify ── */}
+          <TouchableOpacity
+            style={[styles.photoBtn, { backgroundColor: `${theme.tint}14`, borderColor: theme.tint }]}
+            onPress={handleTakePhoto}
+            disabled={isIdentifying}
+          >
+            {isIdentifying ? (
+              <>
+                <ActivityIndicator size="small" color={theme.tint} />
+                <Text style={[styles.photoBtnText, { color: theme.tint }]}>Identifying with Claude AI...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="camera" size={20} color={theme.tint} />
+                <Text style={[styles.photoBtnText, { color: theme.tint }]}>
+                  Take Photo to Identify
+                </Text>
+                <Text style={[styles.photoBtnSub, { color: theme.tint }]}>
+                  Claude AI will pre-fill the form
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
           {/* Name */}
           <Text style={[styles.label, { color: theme.textSecondary }]}>ITEM NAME *</Text>
           <TextInput
@@ -78,7 +146,6 @@ export function AddItemModal({ visible, onClose, onAdd, theme }: Props) {
             placeholderTextColor={theme.textSecondary}
             value={name}
             onChangeText={setName}
-            autoFocus
           />
 
           {/* Brand */}
@@ -194,6 +261,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: '700' },
   body: { flex: 1, padding: 20 },
+  photoBtn: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  photoBtnText: { fontSize: 15, fontWeight: '700' },
+  photoBtnSub: { fontSize: 11, opacity: 0.7 },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginTop: 16 },
   input: {
     borderWidth: 1,
