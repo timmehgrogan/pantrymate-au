@@ -10,20 +10,66 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { RecipeWithMatch } from '@/types';
 import { useShopping } from '@/hooks/useShopping';
+import { getFoodEmoji } from '@/constants/foodEmojis';
 
 interface Props {
   recipe: RecipeWithMatch;
   theme: Record<string, string>;
 }
 
-const DIFFICULTY_COLOR = { easy: '#10B981', medium: '#F59E0B', hard: '#EF4444' };
+// Hero background colours cycle for visual variety
+const HERO_BG_COLORS = [
+  '#E8F0E8', '#E8EEF5', '#F5EEE8', '#EEE8F5',
+  '#F0EAE0', '#E8F5EE', '#F5E8EE', '#EAF0E0',
+];
+
+function getHeroBg(id: string): string {
+  const index = id.charCodeAt(id.length - 1) % HERO_BG_COLORS.length;
+  return HERO_BG_COLORS[index];
+}
+
+function StarRating({ score, color }: { score: number; color: string }) {
+  // Convert match score to a 1–5 star rating
+  const stars = Math.max(2.5, Math.min(5, 2.5 + (score / 100) * 2.5));
+  const fullStars = Math.floor(stars);
+  const hasHalf = stars - fullStars >= 0.4;
+
+  return (
+    <View style={ratingStyles.row}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Ionicons
+          key={i}
+          name={
+            i <= fullStars
+              ? 'star'
+              : i === fullStars + 1 && hasHalf
+              ? 'star-half'
+              : 'star-outline'
+          }
+          size={13}
+          color="#E8A020"
+        />
+      ))}
+      <Text style={[ratingStyles.value, { color }]}>
+        {(stars).toFixed(1)}
+      </Text>
+    </View>
+  );
+}
+
+const ratingStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  value: { fontSize: 12, fontWeight: '700', marginLeft: 4 },
+});
 
 export function RecipeCard({ recipe, theme }: Props) {
   const [expanded, setExpanded] = useState(false);
   const { addItem } = useShopping();
 
+  const totalIngredients = recipe.ingredients.filter((i) => !i.optional).length;
   const totalTime = recipe.prep_time_minutes + recipe.cook_time_minutes;
-  const difficultyColor = DIFFICULTY_COLOR[recipe.difficulty];
+  const heroBg = getHeroBg(recipe.id);
+  const heroEmoji = getFoodEmoji(recipe.name);
 
   function handleAddMissing() {
     recipe.missingIngredients.forEach((name) => {
@@ -46,113 +92,95 @@ export function RecipeCard({ recipe, theme }: Props) {
   return (
     <>
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[styles.card, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}
         onPress={() => setExpanded(true)}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
       >
-        {/* Match score badge */}
-        <View
-          style={[
-            styles.matchBadge,
-            {
-              backgroundColor:
-                recipe.matchScore >= 80
-                  ? '#10B98120'
-                  : recipe.matchScore >= 50
-                  ? '#F59E0B20'
-                  : '#EF444420',
-              borderColor:
-                recipe.matchScore >= 80
-                  ? '#10B981'
-                  : recipe.matchScore >= 50
-                  ? '#F59E0B'
-                  : '#EF4444',
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.matchText,
-              {
-                color:
-                  recipe.matchScore >= 80
-                    ? '#10B981'
-                    : recipe.matchScore >= 50
-                    ? '#F59E0B'
-                    : '#EF4444',
-              },
-            ]}
-          >
-            {recipe.matchScore}% match
-          </Text>
+        {/* Hero image area */}
+        <View style={[styles.hero, { backgroundColor: heroBg }]}>
+          <Text style={styles.heroEmoji}>{heroEmoji}</Text>
+          {recipe.is_ai_generated && (
+            <View style={styles.aiBadge}>
+              <Ionicons name="sparkles" size={10} color="#fff" />
+              <Text style={styles.aiBadgeText}>AI</Text>
+            </View>
+          )}
         </View>
 
-        <Text style={[styles.name, { color: theme.text }]}>{recipe.name}</Text>
-        <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2}>
-          {recipe.description}
-        </Text>
+        {/* Card body */}
+        <View style={styles.body}>
+          <Text style={[styles.name, { color: theme.text }]}>{recipe.name}</Text>
 
-        <View style={styles.meta}>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={13} color={theme.textSecondary} />
-            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{totalTime} min</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="people-outline" size={13} color={theme.textSecondary} />
-            <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-              {recipe.servings} servings
-            </Text>
-          </View>
-          <View style={[styles.difficultyBadge, { backgroundColor: `${difficultyColor}20` }]}>
-            <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-              {recipe.difficulty}
-            </Text>
-          </View>
-        </View>
-
-        {recipe.missingIngredients.length > 0 && (
-          <Text style={[styles.missing, { color: theme.textSecondary }]}>
-            Missing: {recipe.missingIngredients.slice(0, 3).join(', ')}
-            {recipe.missingIngredients.length > 3
-              ? ` +${recipe.missingIngredients.length - 3} more`
-              : ''}
+          <Text style={[styles.meta, { color: theme.textSecondary }]}>
+            Prep: {recipe.prep_time_minutes} min  |  Cook: {recipe.cook_time_minutes} min  |  Serves: {recipe.servings}
           </Text>
-        )}
+
+          <StarRating score={recipe.matchScore} color={theme.textSecondary} />
+
+          <View style={styles.matchRow}>
+            <Text style={[styles.matchLabel, { color: theme.tint }]}>
+              Pantry Matches: {recipe.matchedIngredients.length}/{totalIngredients}
+            </Text>
+          </View>
+
+          {recipe.missingIngredients.length > 0 && (
+            <Text style={[styles.missing, { color: theme.textSecondary }]}>
+              Missing: {recipe.missingIngredients.length}
+              {' ('}
+              {recipe.missingIngredients.slice(0, 2).join(', ')}
+              {recipe.missingIngredients.length > 2
+                ? `, +${recipe.missingIngredients.length - 2} more`
+                : ''}
+              {')'}
+            </Text>
+          )}
+        </View>
       </TouchableOpacity>
 
       {/* Recipe detail modal */}
       <Modal visible={expanded} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modal, { backgroundColor: theme.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]} numberOfLines={2}>
-              {recipe.name}
-            </Text>
-            <TouchableOpacity onPress={() => setExpanded(false)}>
-              <Ionicons name="close" size={26} color={theme.textSecondary} />
+          {/* Modal hero */}
+          <View style={[styles.modalHero, { backgroundColor: heroBg }]}>
+            <Text style={styles.modalHeroEmoji}>{heroEmoji}</Text>
+            <TouchableOpacity
+              style={[styles.modalClose, { backgroundColor: theme.surface }]}
+              onPress={() => setExpanded(false)}
+            >
+              <Ionicons name="close" size={20} color={theme.text} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-            {/* Meta row */}
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{recipe.name}</Text>
+            <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
+              {recipe.description}
+            </Text>
+
+            {/* Meta chips */}
             <View style={styles.metaRow}>
-              <View style={[styles.metaChip, { backgroundColor: theme.surface }]}>
-                <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
-                <Text style={[styles.metaChipText, { color: theme.textSecondary }]}>
-                  {recipe.prep_time_minutes}m prep
+              {[
+                { icon: 'time-outline', text: `${recipe.prep_time_minutes}m prep` },
+                { icon: 'flame-outline', text: `${recipe.cook_time_minutes}m cook` },
+                { icon: 'people-outline', text: `${recipe.servings} serves` },
+              ].map(({ icon, text }) => (
+                <View key={text} style={[styles.metaChip, { backgroundColor: theme.surface }]}>
+                  <Ionicons name={icon as never} size={13} color={theme.textSecondary} />
+                  <Text style={[styles.metaChipText, { color: theme.textSecondary }]}>{text}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Pantry match summary */}
+            <View style={[styles.matchSummary, { backgroundColor: `${theme.tint}12` }]}>
+              <Text style={[styles.matchSummaryText, { color: theme.tint }]}>
+                ✅  Pantry Matches: {recipe.matchedIngredients.length}/{totalIngredients}
+              </Text>
+              {recipe.missingIngredients.length > 0 && (
+                <Text style={[styles.matchSummaryMissing, { color: theme.textSecondary }]}>
+                  Missing: {recipe.missingIngredients.join(', ')}
                 </Text>
-              </View>
-              <View style={[styles.metaChip, { backgroundColor: theme.surface }]}>
-                <Ionicons name="flame-outline" size={14} color={theme.textSecondary} />
-                <Text style={[styles.metaChipText, { color: theme.textSecondary }]}>
-                  {recipe.cook_time_minutes}m cook
-                </Text>
-              </View>
-              <View style={[styles.metaChip, { backgroundColor: theme.surface }]}>
-                <Ionicons name="people-outline" size={14} color={theme.textSecondary} />
-                <Text style={[styles.metaChipText, { color: theme.textSecondary }]}>
-                  {recipe.servings} serves
-                </Text>
-              </View>
+              )}
             </View>
 
             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>INGREDIENTS</Text>
@@ -165,11 +193,11 @@ export function RecipeCard({ recipe, theme }: Props) {
                   <Ionicons
                     name={inPantry ? 'checkmark-circle' : 'ellipse-outline'}
                     size={18}
-                    color={inPantry ? '#10B981' : theme.textSecondary}
+                    color={inPantry ? theme.tint : theme.textSecondary}
                   />
                   <Text style={[styles.ingredientText, { color: theme.text }]}>
                     {ing.amount} {ing.unit} {ing.name}
-                    {ing.optional ? ' (optional)' : ''}
+                    {ing.optional ? <Text style={{ color: theme.textSecondary }}> (optional)</Text> : null}
                   </Text>
                 </View>
               );
@@ -194,9 +222,9 @@ export function RecipeCard({ recipe, theme }: Props) {
                 style={[styles.addMissingBtn, { backgroundColor: theme.tint }]}
                 onPress={handleAddMissing}
               >
-                <Ionicons name="cart-outline" size={20} color="#fff" />
+                <Ionicons name="cart-outline" size={18} color="#fff" />
                 <Text style={styles.addMissingText}>
-                  Add {recipe.missingIngredients.length} missing to shopping
+                  Add {recipe.missingIngredients.length} missing items to shopping
                 </Text>
               </TouchableOpacity>
             </View>
@@ -209,77 +237,89 @@ export function RecipeCard({ recipe, theme }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 14,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  matchBadge: {
-    alignSelf: 'flex-start',
+  hero: {
+    height: 130,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  heroEmoji: { fontSize: 56 },
+  aiBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#5B7A5A',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 8,
+    gap: 3,
   },
-  matchText: { fontSize: 11, fontWeight: '700' },
-  name: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  description: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 12 },
-  difficultyBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  difficultyText: { fontSize: 11, fontWeight: '600' },
-  missing: { fontSize: 12, marginTop: 2 },
+  aiBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  body: { padding: 14, gap: 5 },
+  name: { fontSize: 17, fontWeight: '800' },
+  meta: { fontSize: 12 },
+  matchRow: { flexDirection: 'row', alignItems: 'center' },
+  matchLabel: { fontSize: 13, fontWeight: '700' },
+  missing: { fontSize: 12 },
   // Modal
   modal: { flex: 1 },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    paddingTop: 56,
-    gap: 10,
+  modalHero: {
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  modalTitle: { flex: 1, fontSize: 20, fontWeight: '800', lineHeight: 26 },
-  modalBody: { flex: 1, padding: 20 },
-  metaRow: { flexDirection: 'row', gap: 8, marginBottom: 20, flexWrap: 'wrap' },
+  modalHeroEmoji: { fontSize: 72 },
+  modalClose: {
+    position: 'absolute',
+    top: 48,
+    right: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBody: { flex: 1, paddingHorizontal: 20, paddingTop: 16 },
+  modalTitle: { fontSize: 22, fontWeight: '800', marginBottom: 6 },
+  modalDescription: { fontSize: 14, lineHeight: 20, marginBottom: 14 },
+  metaRow: { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
   metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   metaChipText: { fontSize: 12 },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 12,
-    marginTop: 8,
+  matchSummary: {
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 4,
   },
+  matchSummaryText: { fontSize: 14, fontWeight: '700' },
+  matchSummaryMissing: { fontSize: 12 },
+  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10, marginTop: 4 },
   ingredientRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderBottomWidth: 1,
   },
   ingredientText: { flex: 1, fontSize: 14 },
-  stepRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
-    alignItems: 'flex-start',
-  },
+  stepRow: { flexDirection: 'row', gap: 12, marginBottom: 14, alignItems: 'flex-start' },
   stepNum: {
     width: 26,
     height: 26,
@@ -291,10 +331,7 @@ const styles = StyleSheet.create({
   },
   stepNumText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   stepText: { flex: 1, fontSize: 14, lineHeight: 21 },
-  modalFooter: {
-    padding: 16,
-    borderTopWidth: 1,
-  },
+  modalFooter: { padding: 16, borderTopWidth: 1 },
   addMissingBtn: {
     flexDirection: 'row',
     alignItems: 'center',
