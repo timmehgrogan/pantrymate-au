@@ -15,7 +15,7 @@ export async function generateRecipeWithAI(prompt: string): Promise<Recipe | nul
     );
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
   const systemPrompt = `You are an expert Australian recipe generator for the PantryMate AU app.
 Generate practical, delicious recipes for Australian families.

@@ -28,10 +28,14 @@ export function AIRecipeModal({ visible, onClose, pantryItems, onGenerate, isGen
   const pantryList = pantryItems.map((i) => i.name).slice(0, 12);
 
   async function handleGenerate() {
-    const pantryContext = usePantryItems && pantryList.length > 0
-      ? `Using these pantry items: ${pantryList.join(', ')}. `
-      : '';
-    const fullPrompt = `${pantryContext}${prompt || 'Suggest a delicious Aussie family recipe.'}`;
+    let pantryContext = '';
+    if (usePantryItems && pantryItems.length > 0) {
+      const itemLines = pantryItems
+        .map((i) => `- ${i.name}${i.quantity > 1 ? ` (${i.quantity} ${i.unit})` : ''} [${i.category}]`)
+        .join('\n');
+      pantryContext = `My current pantry inventory:\n${itemLines}\n\n`;
+    }
+    const fullPrompt = `${pantryContext}${prompt || 'Suggest a delicious Aussie family recipe using what I have.'}`;
     await onGenerate(fullPrompt);
     onClose();
   }
