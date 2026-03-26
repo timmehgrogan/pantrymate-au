@@ -43,7 +43,7 @@ export function AIRecipeModal({ visible, onClose, pantryItems, onGenerate, isGen
           <View>
             <Text style={[styles.headerTitle, { color: theme.text }]}>✨ AI Recipe Generator</Text>
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-              Powered by Claude AI · Paid feature
+              Powered by Claude AI
             </Text>
           </View>
           <TouchableOpacity onPress={onClose}>

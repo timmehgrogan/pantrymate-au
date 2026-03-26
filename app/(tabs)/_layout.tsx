@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -25,6 +26,37 @@ function HeaderTitle({ tint }: { tint: string }) {
         <Text style={[styles.headerAU, { color: tint }]}>AU</Text>
       </View>
     </View>
+  );
+}
+
+function SignOutButton() {
+  const { signOut, user } = useAuth();
+
+  function handleSignOut() {
+    Alert.alert(
+      'Sign Out',
+      `Sign out of ${user?.email ?? 'your account'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (err) {
+              console.error('Sign out error:', err);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  return (
+    <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+      <Ionicons name="log-out-outline" size={22} color="#6B7B6B" />
+    </TouchableOpacity>
   );
 }
 
@@ -64,6 +96,7 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerTitle: () => <HeaderTitle tint={theme.tint} />,
         headerTitleAlign: 'left',
+        headerRight: () => <SignOutButton />,
       }}
     >
       <Tabs.Screen
@@ -138,5 +171,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     lineHeight: 13,
+  },
+  signOutBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
 });

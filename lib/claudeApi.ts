@@ -38,7 +38,7 @@ Always respond with a single valid JSON object matching this exact TypeScript ty
 Use Australian ingredient names and measurements (e.g. "capsicum" not "bell pepper", "coriander" not "cilantro", grams/litres). Only respond with the JSON object, no markdown.`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 2048,
     system: systemPrompt,
     messages: [
