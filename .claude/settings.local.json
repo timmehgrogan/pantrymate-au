@@ -20,7 +20,8 @@
       "Read(//c/Users/grogg/AppData/Local/Programs/**)",
       "Read(//c/Users/grogg/**)",
       "Bash(\"/c/Program Files/nodejs/npm.cmd\" install)",
-      "Bash(ls /c/Users/grogg/PantryMateAU/node_modules/.bin/expo*)"
+      "Bash(ls /c/Users/grogg/PantryMateAU/node_modules/.bin/expo*)",
+      "Bash(gh pr:*)"
     ]
   }
 }
