@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -184,6 +185,17 @@ export default function ScanScreen() {
           <ScrollView style={styles.modalBody}>
             {product && (
               <>
+                {/* Product photo from Open Food Facts */}
+                {product.image_url ? (
+                  <View style={[styles.productImageContainer, { backgroundColor: theme.surface }]}>
+                    <Image
+                      source={{ uri: product.image_url }}
+                      style={styles.productImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                ) : null}
+
                 {/* Product info */}
                 <View style={[styles.productCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <Text style={[styles.productName, { color: theme.text }]}>{product.name}</Text>
@@ -369,6 +381,18 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 18, fontWeight: '700' },
   modalBody: { flex: 1, padding: 20 },
+  productImageContainer: {
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
   productCard: {
     padding: 16,
     borderRadius: 12,

@@ -1,51 +1,54 @@
 /**
- * PantryMate AU colour palette.
- * Primary: Aussie bush green
- * Accent: Warm amber (pantry/food)
+ * PantryMate AU colour palette — matches design mockups.
+ * Primary: Sage green (#5B7A5A)
+ * Accent: Warm amber (#C4A352) for Barcode Scan button
  */
-
-const tintColorLight = '#2D6A4F';  // Deep forest green
-const tintColorDark = '#52B788';   // Lighter green for dark mode
 
 export const Colors = {
   light: {
-    text: '#1A1A2E',
+    text: '#1C2B1C',
     textSecondary: '#6B7280',
-    background: '#F9FAFB',
+    background: '#F5F5F0',
     surface: '#FFFFFF',
-    tint: tintColorLight,
+    tint: '#5B7A5A',
     tabIconDefault: '#9CA3AF',
-    tabIconSelected: tintColorLight,
-    border: '#E5E7EB',
+    tabIconSelected: '#FFFFFF',
+    tabActiveBackground: '#3A5A38',
+    border: '#E4E9E4',
+    shadow: 'rgba(0,0,0,0.07)',
     // Category colours
     fridge: '#3B82F6',
     freezer: '#6366F1',
-    pantry: '#F59E0B',
+    pantry: '#5B7A5A',
     // Status colours
-    expirySoon: '#F59E0B',
-    expired: '#EF4444',
-    fresh: '#10B981',
-    // Accent
-    accent: '#F59E0B',
+    expirySoon: '#E8A020',
+    expired: '#DC2626',
+    fresh: '#5B7A5A',
+    // Accent (amber for scan button)
+    accent: '#C4A352',
+    accentDark: '#A8892A',
     accentLight: '#FEF3C7',
   },
   dark: {
     text: '#ECEDEE',
     textSecondary: '#9CA3AF',
-    background: '#111827',
-    surface: '#1F2937',
-    tint: tintColorDark,
+    background: '#111A11',
+    surface: '#1C2A1C',
+    tint: '#7AAB7A',
     tabIconDefault: '#6B7280',
-    tabIconSelected: tintColorDark,
-    border: '#374151',
+    tabIconSelected: '#FFFFFF',
+    tabActiveBackground: '#3A5A38',
+    border: '#2A3A2A',
+    shadow: 'rgba(0,0,0,0.3)',
     fridge: '#60A5FA',
     freezer: '#818CF8',
-    pantry: '#FBBF24',
+    pantry: '#7AAB7A',
     expirySoon: '#FBBF24',
     expired: '#F87171',
-    fresh: '#34D399',
-    accent: '#FBBF24',
-    accentLight: '#1F2937',
+    fresh: '#7AAB7A',
+    accent: '#D4B362',
+    accentDark: '#B8972A',
+    accentLight: '#2A2A1A',
   },
 };
 

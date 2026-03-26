@@ -12,7 +12,16 @@
       "Bash(git init:*)",
       "Bash(git config:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cmd.exe /c \"node --version && npm --version\")",
+      "Bash(cmd.exe /c \"where node npm npx bun pnpm yarn 2>&1\")",
+      "mcp__Claude_Preview__preview_start",
+      "Read(//c/Program Files/nodejs//**)",
+      "Read(//c/Users/grogg/AppData/Local/Programs/**)",
+      "Read(//c/Users/grogg/**)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install)",
+      "Bash(ls /c/Users/grogg/PantryMateAU/node_modules/.bin/expo*)",
+      "Bash(gh pr:*)"
     ]
   }
 }

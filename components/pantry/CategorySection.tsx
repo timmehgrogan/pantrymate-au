@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PantryItem, PantryCategory } from '@/types';
+import { getFoodEmoji } from '@/constants/foodEmojis';
 
 interface CategoryMeta {
   key: PantryCategory;
@@ -16,6 +17,7 @@ interface Props {
   onRemove: (id: string) => void;
   onUpdateQuantity: (id: string, quantity: number) => void;
   theme: Record<string, string>;
+  defaultExpanded?: boolean;
 }
 
 function getDaysUntilExpiry(expiryDate?: string): number | null {
@@ -26,80 +28,117 @@ function getDaysUntilExpiry(expiryDate?: string): number | null {
 function ExpiryBadge({ daysLeft, theme }: { daysLeft: number | null; theme: Record<string, string> }) {
   if (daysLeft === null) return null;
 
-  let color: string;
-  let label: string;
-
   if (daysLeft < 0) {
-    color = theme.expired;
-    label = 'Expired';
-  } else if (daysLeft === 0) {
-    color = theme.expired;
-    label = 'Expires today';
-  } else if (daysLeft <= 3) {
-    color = theme.expirySoon;
-    label = `${daysLeft}d left`;
-  } else {
-    color = theme.fresh;
-    label = `${daysLeft}d`;
+    return (
+      <View style={styles.expiryBadgeRow}>
+        <View style={[styles.expiryDot, { backgroundColor: theme.expired }]} />
+        <Text style={[styles.expiryBadgeText, { color: theme.expired }]}>Expired</Text>
+      </View>
+    );
+  }
+  if (daysLeft === 0) {
+    return (
+      <View style={styles.expiryBadgeRow}>
+        <View style={[styles.expiryDot, { backgroundColor: theme.expired }]} />
+        <Text style={[styles.expiryBadgeText, { color: theme.expired }]}>Expiring soon</Text>
+      </View>
+    );
+  }
+  if (daysLeft <= 3) {
+    return (
+      <View style={styles.expiryBadgeRow}>
+        <View style={[styles.expiryDot, { backgroundColor: theme.expired }]} />
+        <Text style={[styles.expiryBadgeText, { color: theme.expired }]}>Expiring soon</Text>
+      </View>
+    );
   }
 
+  const color = daysLeft <= 7 ? theme.expirySoon : theme.fresh;
   return (
-    <View style={[styles.badge, { backgroundColor: `${color}20`, borderColor: color }]}>
-      <Text style={[styles.badgeText, { color }]}>{label}</Text>
+    <View style={[styles.daysBadge, { backgroundColor: `${color}18` }]}>
+      <Ionicons name="calendar-outline" size={11} color={color} />
+      <Text style={[styles.daysBadgeText, { color }]}>{daysLeft} days</Text>
     </View>
   );
 }
 
-export function CategorySection({ category, items, onRemove, onUpdateQuantity, theme }: Props) {
+export function CategorySection({ category, items, onRemove, onUpdateQuantity, theme, defaultExpanded = true }: Props) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
   if (items.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionIcon}>{category.icon}</Text>
-        <Text style={[styles.sectionTitle, { color: category.color }]}>{category.label}</Text>
-        <View style={[styles.countBadge, { backgroundColor: category.color }]}>
-          <Text style={styles.countText}>{items.length}</Text>
-        </View>
-      </View>
+      {/* Accordion header */}
+      <TouchableOpacity
+        style={[styles.accordionHeader, { backgroundColor: theme.surface }]}
+        onPress={() => setExpanded((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.categoryIcon}>{category.icon}</Text>
+        <Text style={[styles.categoryLabel, { color: theme.text }]}>{category.label}</Text>
+        <Text style={[styles.categoryCount, { color: theme.textSecondary }]}>
+          ({items.length} {items.length === 1 ? 'Item' : 'Items'})
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={theme.textSecondary}
+          style={styles.chevron}
+        />
+      </TouchableOpacity>
 
-      {items.map((item) => {
+      {/* Items */}
+      {expanded && items.map((item) => {
         const daysLeft = getDaysUntilExpiry(item.expiry_date);
+        const emoji = getFoodEmoji(item.name);
         return (
           <View
             key={item.id}
-            style={[styles.itemCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.itemCard, { backgroundColor: theme.surface, shadowColor: theme.shadow }]}
           >
-            <View style={styles.itemLeft}>
+            {/* Food photo or emoji */}
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={[styles.emojiCircle, styles.itemPhoto]}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.emojiCircle, { backgroundColor: theme.background }]}>
+                <Text style={styles.emojiText}>{emoji}</Text>
+              </View>
+            )}
+
+            {/* Name + brand + qty */}
+            <View style={styles.itemMiddle}>
               <Text style={[styles.itemName, { color: theme.text }]}>{item.name}</Text>
-              {item.brand && (
-                <Text style={[styles.itemBrand, { color: theme.textSecondary }]}>{item.brand}</Text>
-              )}
-              <ExpiryBadge daysLeft={daysLeft} theme={theme} />
+              <Text style={[styles.itemQty, { color: theme.textSecondary }]}>
+                ({item.quantity}{item.unit})
+                {item.brand ? ` · ${item.brand}` : ''}
+              </Text>
             </View>
 
+            {/* Expiry + controls */}
             <View style={styles.itemRight}>
+              <ExpiryBadge daysLeft={daysLeft} theme={theme} />
               <View style={styles.qtyControls}>
                 <TouchableOpacity
                   style={[styles.qtyBtn, { borderColor: theme.border }]}
                   onPress={() => onUpdateQuantity(item.id, Math.max(0, item.quantity - 1))}
                 >
-                  <Ionicons name="remove" size={14} color={theme.tint} />
+                  <Ionicons name="remove" size={13} color={theme.tint} />
                 </TouchableOpacity>
-                <Text style={[styles.qtyText, { color: theme.text }]}>
-                  {item.quantity} {item.unit}
-                </Text>
                 <TouchableOpacity
                   style={[styles.qtyBtn, { borderColor: theme.border }]}
                   onPress={() => onUpdateQuantity(item.id, item.quantity + 1)}
                 >
-                  <Ionicons name="add" size={14} color={theme.tint} />
+                  <Ionicons name="add" size={13} color={theme.tint} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.deleteBtn}>
+                  <Ionicons name="trash-outline" size={14} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
-
-              <TouchableOpacity onPress={() => onRemove(item.id)} style={styles.deleteBtn}>
-                <Ionicons name="trash-outline" size={16} color={theme.textSecondary} />
-              </TouchableOpacity>
             </View>
           </View>
         );
@@ -109,53 +148,65 @@ export function CategorySection({ category, items, onRemove, onUpdateQuantity, t
 }
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 16 },
-  sectionHeader: {
+  section: { marginBottom: 4 },
+  accordionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 14,
     gap: 8,
   },
-  sectionIcon: { fontSize: 18 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5, flex: 1 },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  countText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  categoryIcon: { fontSize: 20 },
+  categoryLabel: { fontSize: 15, fontWeight: '700' },
+  categoryCount: { fontSize: 13 },
+  chevron: { marginLeft: 'auto' },
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
     marginBottom: 8,
     padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 14,
+    gap: 12,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  itemLeft: { flex: 1, gap: 3 },
+  emojiCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  emojiText: { fontSize: 24 },
+  itemPhoto: { borderRadius: 22, overflow: 'hidden' },
+  itemMiddle: { flex: 1, gap: 2 },
   itemName: { fontSize: 15, fontWeight: '600' },
-  itemBrand: { fontSize: 12 },
-  badge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    marginTop: 2,
-  },
-  badgeText: { fontSize: 11, fontWeight: '600' },
+  itemQty: { fontSize: 12 },
   itemRight: { alignItems: 'flex-end', gap: 6 },
-  qtyControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  expiryBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  expiryDot: { width: 7, height: 7, borderRadius: 4 },
+  expiryBadgeText: { fontSize: 11, fontWeight: '600' },
+  daysBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  daysBadgeText: { fontSize: 11, fontWeight: '600' },
+  qtyControls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   qtyBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyText: { fontSize: 13, fontWeight: '600', minWidth: 40, textAlign: 'center' },
-  deleteBtn: { padding: 2 },
+  deleteBtn: { padding: 2, marginLeft: 2 },
 });
