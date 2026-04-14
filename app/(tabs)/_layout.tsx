@@ -136,6 +136,16 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="game"
+        options={{
+          title: 'GAME',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="game-controller" size={size} color={color} />
+          ),
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
