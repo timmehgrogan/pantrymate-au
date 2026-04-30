@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3B82F6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1E3A5F" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Health">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Health Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F0F9FF;
+      --surface: #FFFFFF;
+      --text: #0F172A;
+      --text2: #64748B;
+      --border: #E2E8F0;
+      --water: #3B82F6;
+      --water-light: #DBEAFE;
+      --water-text: #1D4ED8;
+      --ring-track: #E2E8F0;
+      --weight: #10B981;
+      --weight-light: #D1FAE5;
+      --weight-text: #065F46;
+      --waist: #F59E0B;
+      --waist-light: #FEF3C7;
+      --waist-text: #92400E;
+      --good: #10B981;
+      --bad: #EF4444;
+      --radius: 20px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0D1B2A;
+        --surface: #162534;
+        --text: #F1F5F9;
+        --text2: #94A3B8;
+        --border: #1E3A4F;
+        --water-light: #1E3A5F;
+        --water-text: #93C5FD;
+        --ring-track: #1E3A4F;
+        --weight-light: #064E3B;
+        --weight-text: #6EE7B7;
+        --waist-light: #451A03;
+        --waist-text: #FCD34D;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+    }
+
+    html {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header {
+      padding:
+        calc(env(safe-area-inset-top, 0px) + 20px)
+        20px 20px;
+      background: var(--water);
+      color: #fff;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 3px;
+    }
+
+    .header-streak {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 8px 12px;
+    }
+
+    .streak-num { font-size: 20px; font-weight: 800; }
+    .streak-label { font-size: 10px; opacity: 0.85; font-weight: 600; letter-spacing: 0.5px; }
+
+    /* ── Main layout ── */
+    main {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .card-body { padding: 18px; }
+
+    /* ── Section header ── */
+    .section-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .section-hdr h2 {
+      font-size: 16px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    .badge-water { background: var(--water-light); color: var(--water-text); }
+    .badge-done  { background: #D1FAE5; color: #065F46; }
+
+    /* ── Water ring ── */
+    .water-ring-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .water-ring { width: 180px; height: 180px; }
+
+    .ring-track {
+      fill: none;
+      stroke: var(--ring-track);
+      stroke-width: 14;
+    }
+
+    #ring-fill {
+      fill: none;
+      stroke: var(--water);
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-dasharray: 0 439.82;
+      transform-origin: 100px 100px;
+      transform: rotate(-90deg);
+      transition: stroke-dasharray 0.55s cubic-bezier(0.4,0,0.2,1), stroke 0.4s;
+    }
+
+    .ring-main   { font-size: 26px; font-weight: 800; text-anchor: middle; fill: var(--text); }
+    .ring-sub    { font-size: 12px; text-anchor: middle; fill: var(--text2); }
+    .ring-pct    { font-size: 12px; font-weight: 700; text-anchor: middle; fill: var(--water); }
+
+    /* ── Water buttons ── */
+    .water-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .w-btn {
+      background: var(--water-light);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 4px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      cursor: pointer;
+      transition: transform 0.12s, opacity 0.12s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .w-btn:active { transform: scale(0.93); opacity: 0.75; }
+
+    .w-btn-amt  { font-size: 15px; font-weight: 800; color: var(--water-text); }
+    .w-btn-unit { font-size: 10px; font-weight: 600; color: var(--water-text); opacity: 0.75; }
+
+    .water-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .text-btn {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: opacity 0.1s;
+    }
+
+    .text-btn:active { opacity: 0.6; }
+    .text-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+    /* ── Measurements ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metric-card {
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 2px;
+    }
+
+    .metric-hdr {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .metric-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text2);
+    }
+
+    .metric-val {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .metric-delta {
+      min-height: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin: 2px 0 8px;
+    }
+
+    .delta-good { color: var(--good); }
+    .delta-bad  { color: var(--bad); }
+    .delta-flat { color: var(--text2); }
+
+    .log-btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 10px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.1s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+
+    .log-btn:active { opacity: 0.8; transform: scale(0.97); }
+    .log-btn.weight { background: var(--weight-light); color: var(--weight-text); }
+    .log-btn.waist  { background: var(--waist-light);  color: var(--waist-text); }
+
+    /* ── History ── */
+    .history-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-hdr h2 { font-size: 15px; font-weight: 700; }
+    .history-count  { font-size: 12px; color: var(--text2); }
+
+    .history-empty {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text2);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .h-row {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .h-row:last-child { border-bottom: none; }
+
+    .h-date {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text2);
+      margin-bottom: 7px;
+    }
+
+    .h-water {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .h-track {
+      flex: 1;
+      height: 6px;
+      background: var(--ring-track);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .h-fill {
+      height: 100%;
+      background: var(--water);
+      border-radius: 3px;
+    }
+
+    .h-water-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--water-text);
+      white-space: nowrap;
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .h-metrics {
+      display: flex;
+      gap: 14px;
+    }
+
+    .h-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .h-chip-val  { font-weight: 600; color: var(--text); }
+    .h-chip-icon { font-size: 12px; }
+    .h-delta     { font-size: 11px; font-weight: 700; }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .overlay.show { opacity: 1; pointer-events: auto; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 28px 24px calc(28px + env(safe-area-inset-bottom, 0px));
+      width: 100%;
+      max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .overlay.show .modal { transform: translateY(0); }
+
+    .modal h3 { font-size: 19px; font-weight: 800; margin-bottom: 18px; }
+
+    .modal-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 6px 18px;
+      margin-bottom: 20px;
+      transition: border-color 0.15s;
+    }
+
+    .modal-field:focus-within { border-color: var(--water); }
+
+    .modal-input {
+      flex: 1;
+      font-size: 32px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 0;
+      outline: none;
+      min-width: 0;
+    }
+
+    .modal-unit {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+
+    .modal-btns {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 12px;
+    }
+
+    .m-cancel {
+      padding: 15px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .m-save {
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      background: var(--water);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.1s;
+    }
+
+    .m-save:active { opacity: 0.85; }
+    .m-cancel:active { opacity: 0.65; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>Health Tracker</h1>
+        <div class="header-sub" id="hdr-date"></div>
+      </div>
+      <div class="header-streak" id="streak-box" style="display:none">
+        <span class="streak-num" id="streak-num">0</span>
+        <span class="streak-label">DAY STREAK</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Water card -->
+    <div class="card">
+      <div class="card-body">
+        <div class="section-hdr">
+          <h2>💧 Hydration</h2>
+          <span class="badge badge-water" id="water-badge">Target: 3.0 L</span>
+        </div>
+
+        <div class="water-ring-wrap">
+          <svg class="water-ring" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="ring-track" cx="100" cy="100" r="70"/>
+            <circle id="ring-fill" cx="100" cy="100" r="70"/>
+            <text id="ring-main" class="ring-main" x="100" y="92">0 ml</text>
+            <text class="ring-sub"  x="100" y="113">of 3.0 L</text>
+            <text id="ring-pct"  class="ring-pct"  x="100" y="131">0%</text>
+          </svg>
+        </div>
+
+        <div class="water-btns">
+          <button class="w-btn" onclick="addWater(250)">
+            <span class="w-btn-amt">+250</span><span class="w-btn-unit">ml</span>
+          </button>
+          <button class="w-btn" onclick="addWater(500)">
+            <span class="w-btn-amt">+500</span><span class="w-btn-unit">ml</span>
+          </button>
+          <button class="w-btn" onclick="addWater(750)">
+            <span class="w-btn-amt">+750</span><span class="w-btn-unit">ml</span>
+          </button>
+          <button class="w-btn" onclick="addWater(1000)">
+            <span class="w-btn-amt">+1</span><span class="w-btn-unit">L</span>
+          </button>
+        </div>
+
+        <div class="water-foot">
+          <button class="text-btn" id="undo-btn" onclick="undoWater()" disabled>↩ Undo</button>
+          <button class="text-btn" onclick="openCustomWater()">＋ Custom</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measurements -->
+    <div class="metrics-grid">
+      <div class="card metric-card">
+        <div class="metric-hdr">
+          <span>⚖️</span>
+          <span class="metric-lbl">Weight</span>
+        </div>
+        <div class="metric-val" id="weight-val">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:2px" id="weight-unit-lbl">kg</div>
+        <div class="metric-delta" id="weight-delta"></div>
+        <button class="log-btn weight" onclick="openModal('weight')">Log today</button>
+      </div>
+
+      <div class="card metric-card">
+        <div class="metric-hdr">
+          <span>📏</span>
+          <span class="metric-lbl">Waist</span>
+        </div>
+        <div class="metric-val" id="waist-val">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:2px">cm</div>
+        <div class="metric-delta" id="waist-delta"></div>
+        <button class="log-btn waist" onclick="openModal('waist')">Log today</button>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <div class="history-hdr">
+        <h2>Progress Log</h2>
+        <span class="history-count" id="history-count"></span>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Weight / Waist modal -->
+<div class="overlay" id="log-overlay" onclick="overlayTap(event,'log-overlay')">
+  <div class="modal">
+    <h3 id="modal-title">Log Weight</h3>
+    <div class="modal-field">
+      <input class="modal-input" id="modal-input"
+             type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0">
+      <span class="modal-unit" id="modal-unit">kg</span>
+    </div>
+    <div class="modal-btns">
+      <button class="m-cancel" onclick="closeOverlay('log-overlay')">Cancel</button>
+      <button class="m-save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom water modal -->
+<div class="overlay" id="water-overlay" onclick="overlayTap(event,'water-overlay')">
+  <div class="modal">
+    <h3>Add Custom Amount</h3>
+    <div class="modal-field">
+      <input class="modal-input" id="custom-input"
+             type="number" inputmode="numeric" step="10" min="0" max="5000" placeholder="330">
+      <span class="modal-unit">ml</span>
+    </div>
+    <div class="modal-btns">
+      <button class="m-cancel" onclick="closeOverlay('water-overlay')">Cancel</button>
+      <button class="m-save" onclick="saveCustomWater()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const STORAGE_KEY   = 'healthtracker_v1';
+const WATER_TARGET  = 3000;
+const RING_CIRC     = 2 * Math.PI * 70; // 439.82
+
+// ── State ──────────────────────────────────────────────────────────────────
+let lastWaterAdded  = 0;
+let currentModal    = null; // 'weight' | 'waist'
+
+// ── Data helpers ───────────────────────────────────────────────────────────
+function getData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+
+function getEntry(date) {
+  const d = getData();
+  return d[date] || { waterMl: 0 };
+}
+
+function patchEntry(date, patch) {
+  const d = getData();
+  d[date] = { ...(d[date] || { waterMl: 0 }), ...patch };
+  saveData(d);
+}
+
+// ── Water ──────────────────────────────────────────────────────────────────
+function addWater(ml) {
+  const entry = getEntry(todayKey());
+  patchEntry(todayKey(), { waterMl: Math.max(0, (entry.waterMl || 0) + ml) });
+  lastWaterAdded = ml;
+  document.getElementById('undo-btn').disabled = false;
+  render();
+}
+
+function undoWater() {
+  if (!lastWaterAdded) return;
+  const entry = getEntry(todayKey());
+  patchEntry(todayKey(), { waterMl: Math.max(0, entry.waterMl - lastWaterAdded) });
+  lastWaterAdded = 0;
+  document.getElementById('undo-btn').disabled = true;
+  render();
+}
+
+function openCustomWater() {
+  document.getElementById('custom-input').value = '';
+  openOverlay('water-overlay');
+  setTimeout(() => document.getElementById('custom-input').focus(), 220);
+}
+
+function saveCustomWater() {
+  const v = parseInt(document.getElementById('custom-input').value, 10);
+  if (!isNaN(v) && v > 0) { addWater(v); closeOverlay('water-overlay'); }
+}
+
+// ── Measurements modal ─────────────────────────────────────────────────────
+function openModal(type) {
+  currentModal = type;
+  const isW = type === 'weight';
+
+  document.getElementById('modal-title').textContent = isW ? 'Log Weight' : 'Log Waist Size';
+  document.getElementById('modal-unit').textContent  = isW ? 'kg' : 'cm';
+
+  const inp = document.getElementById('modal-input');
+  inp.placeholder = isW ? '78.5' : '89.0';
+  inp.step        = '0.1';
+
+  // Pre-fill today's value if already logged
+  const todayVal = getEntry(todayKey())[type];
+  inp.value = todayVal != null ? todayVal : '';
+
+  openOverlay('log-overlay');
+  setTimeout(() => inp.focus(), 220);
+}
+
+function saveModal() {
+  const v = parseFloat(document.getElementById('modal-input').value);
+  if (isNaN(v) || v <= 0) return;
+  patchEntry(todayKey(), { [currentModal]: v });
+  closeOverlay('log-overlay');
+  render();
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────
+function openOverlay(id)  { document.getElementById(id).classList.add('show'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('show'); }
+function overlayTap(e, id) { if (e.target === document.getElementById(id)) closeOverlay(id); }
+
+// ── Formatters ─────────────────────────────────────────────────────────────
+function fmtWater(ml) {
+  return ml >= 1000 ? (ml / 1000).toFixed(1) + ' L' : ml + ' ml';
+}
+
+function fmtDate(ds) {
+  const today     = todayKey();
+  const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+  if (ds === today)     return 'Today';
+  if (ds === yesterday) return 'Yesterday';
+  return new Date(ds + 'T12:00:00').toLocaleDateString('en-AU', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+}
+
+function deltaHtml(diff) {
+  if (diff == null || diff === 0) return '';
+  const cls   = diff < 0 ? 'delta-good' : 'delta-bad';
+  const arrow = diff < 0 ? '↓' : '↑';
+  return `<span class="h-delta ${cls}">${arrow}${Math.abs(diff).toFixed(1)}</span>`;
+}
+
+// ── Streak calculator ──────────────────────────────────────────────────────
+function calcStreak(data) {
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().split('T')[0];
+    const entry = data[key];
+    if (!entry || (entry.waterMl || 0) < WATER_TARGET) {
+      // If today hasn't hit the target yet, don't break streak (keep going)
+      if (key === todayKey()) { d.setDate(d.getDate() - 1); continue; }
+      break;
+    }
+    streak++;
+    d.setDate(d.getDate() - 1);
+    if (streak > 365) break;
+  }
+  return streak;
+}
+
+// ── Main render ────────────────────────────────────────────────────────────
+function render() {
+  const data  = getData();
+  const today = todayKey();
+  const entry = data[today] || { waterMl: 0 };
+
+  // ── Water ring ──
+  const ml      = entry.waterMl || 0;
+  const pct     = Math.min(ml / WATER_TARGET, 1);
+  const filled  = RING_CIRC * pct;
+  const done    = ml >= WATER_TARGET;
+
+  document.getElementById('ring-fill').setAttribute(
+    'stroke-dasharray', `${filled} ${RING_CIRC - filled}`
+  );
+  document.getElementById('ring-fill').style.stroke = done ? 'var(--weight)' : 'var(--water)';
+  document.getElementById('ring-pct').style.fill    = done ? 'var(--weight)' : 'var(--water)';
+
+  document.getElementById('ring-main').textContent = fmtWater(ml);
+  document.getElementById('ring-pct').textContent  = Math.round(pct * 100) + '%';
+
+  const badge = document.getElementById('water-badge');
+  badge.textContent  = done ? '✓ Target reached!' : 'Target: 3.0 L';
+  badge.className    = 'badge ' + (done ? 'badge-done' : 'badge-water');
+
+  // ── Metrics ──
+  const sorted = Object.entries(data).sort(([a], [b]) => b.localeCompare(a));
+  const wEntries  = sorted.filter(([, e]) => e.weight != null);
+  const waEntries = sorted.filter(([, e]) => e.waist  != null);
+
+  const latestW  = wEntries[0]?.[1].weight;
+  const prevW    = wEntries[1]?.[1].weight;
+  const latestWa = waEntries[0]?.[1].waist;
+  const prevWa   = waEntries[1]?.[1].waist;
+
+  document.getElementById('weight-val').textContent = latestW  != null ? latestW  : '—';
+  document.getElementById('waist-val').textContent  = latestWa != null ? latestWa : '—';
+
+  // Weight delta
+  const wDeltaEl = document.getElementById('weight-delta');
+  if (latestW != null && prevW != null) {
+    const diff = parseFloat((latestW - prevW).toFixed(1));
+    wDeltaEl.innerHTML = diff === 0
+      ? '<span class="delta-flat">No change</span>'
+      : deltaHtml(diff) + ' <span class="delta-flat" style="font-size:11px">from last</span>';
+  } else {
+    wDeltaEl.innerHTML = '<span class="delta-flat" style="font-size:11px">No history yet</span>';
+  }
+
+  // Waist delta
+  const waDeltaEl = document.getElementById('waist-delta');
+  if (latestWa != null && prevWa != null) {
+    const diff = parseFloat((latestWa - prevWa).toFixed(1));
+    waDeltaEl.innerHTML = diff === 0
+      ? '<span class="delta-flat">No change</span>'
+      : deltaHtml(diff) + ' <span class="delta-flat" style="font-size:11px">from last</span>';
+  } else {
+    waDeltaEl.innerHTML = '<span class="delta-flat" style="font-size:11px">No history yet</span>';
+  }
+
+  // ── Streak ──
+  const streak = calcStreak(data);
+  const streakBox = document.getElementById('streak-box');
+  if (streak > 0) {
+    streakBox.style.display = 'flex';
+    document.getElementById('streak-num').textContent = streak;
+  } else {
+    streakBox.style.display = 'none';
+  }
+
+  // ── History ──
+  renderHistory(data);
+}
+
+function renderHistory(data) {
+  const dates = Object.keys(data).sort((a, b) => b.localeCompare(a)).slice(0, 30);
+  const list  = document.getElementById('history-list');
+
+  document.getElementById('history-count').textContent =
+    dates.length ? `${dates.length} day${dates.length > 1 ? 's' : ''}` : '';
+
+  if (!dates.length) {
+    list.innerHTML = '<p class="history-empty">No entries yet.<br>Start by logging some water or measurements above.</p>';
+    return;
+  }
+
+  // Build a map of "previous entry with weight/waist" for deltas
+  // We iterate in date order (oldest first) to compute running previous
+  const chronoDates = [...dates].reverse();
+  const prevByDate  = {};
+  let lastWithW  = null;
+  let lastWithWa = null;
+  for (const d of chronoDates) {
+    prevByDate[d] = { weight: lastWithW, waist: lastWithWa };
+    if (data[d].weight != null) lastWithW  = data[d].weight;
+    if (data[d].waist  != null) lastWithWa = data[d].waist;
+  }
+
+  list.innerHTML = dates.map((date) => {
+    const e   = data[date];
+    const prv = prevByDate[date] || {};
+    const wpct = Math.min((e.waterMl || 0) / WATER_TARGET * 100, 100);
+
+    let wdHtml  = '';
+    let wadHtml = '';
+
+    if (e.weight != null && prv.weight != null) {
+      const diff = parseFloat((e.weight - prv.weight).toFixed(1));
+      if (diff !== 0) wdHtml = deltaHtml(diff);
+    }
+    if (e.waist != null && prv.waist != null) {
+      const diff = parseFloat((e.waist - prv.waist).toFixed(1));
+      if (diff !== 0) wadHtml = deltaHtml(diff);
+    }
+
+    return `
+      <div class="h-row">
+        <div class="h-date">${fmtDate(date)}</div>
+        <div class="h-water">
+          <div class="h-track"><div class="h-fill" style="width:${wpct}%"></div></div>
+          <span class="h-water-lbl">${fmtWater(e.waterMl || 0)}</span>
+        </div>
+        <div class="h-metrics">
+          <div class="h-chip">
+            <span class="h-chip-icon">⚖️</span>
+            <span class="h-chip-val">${e.weight != null ? e.weight + ' kg' : '—'}</span>
+            ${wdHtml}
+          </div>
+          <div class="h-chip">
+            <span class="h-chip-icon">📏</span>
+            <span class="h-chip-val">${e.waist != null ? e.waist + ' cm' : '—'}</span>
+            ${wadHtml}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('en-AU', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  // Enter key saves in modals
+  document.getElementById('modal-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveModal();
+  });
+  document.getElementById('custom-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveCustomWater();
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  render();
+});
+</script>
+</body>
+</html>
